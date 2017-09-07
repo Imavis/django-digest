@@ -6,6 +6,7 @@ _l.setLevel(logging.DEBUG)
 from datetime import datetime
 
 from django.db import IntegrityError, connection, transaction
+from django.contrib.auth import get_user_model
 
 from django_digest.models import PartialDigest
 
@@ -13,15 +14,16 @@ class AccountStorage(object):
     GET_PARTIAL_DIGEST_QUERY = """
     SELECT django_digest_partialdigest.login, django_digest_partialdigest.partial_digest
       FROM django_digest_partialdigest
-      INNER JOIN auth_user ON auth_user.id = django_digest_partialdigest.user_id
-      WHERE django_digest_partialdigest.login = %s
+      INNER JOIN %(user_table)s ON %(user_table)s.id = django_digest_partialdigest.user_id
+      WHERE django_digest_partialdigest.login = %%s
         AND django_digest_partialdigest.confirmed
-        AND auth_user.is_active
+        AND %(user_table)s.is_active
     """
 
     def get_partial_digest(self, username):
+        user_table = get_user_model()._meta.db_table
         cursor = connection.cursor()
-        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY, [username])
+        cursor.execute(self.GET_PARTIAL_DIGEST_QUERY % {'user_table': user_table}, [username])
         # In MySQL, string comparison is case-insensitive by default.
         # Therefore a second round of filtering is required.
         row = [(row[1]) for row in cursor.fetchall() if row[0] == username]

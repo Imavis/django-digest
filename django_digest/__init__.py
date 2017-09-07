@@ -13,6 +13,9 @@ _l = logging.getLogger(__name__)
 _l.setLevel(logging.DEBUG)
 
 
+default_app_config = 'django_digest.apps.DjangoDigestConfig'
+
+
 class DefaultLoginFactory(object):
     def confirmed_logins_for_user(self, user):
         return [login for login in
