@@ -1,21 +1,13 @@
-import logging
-
-_l = logging.getLogger(__name__)
-_l.setLevel(logging.DEBUG)
-
-from copy import copy
-
+from django import db
 from django.conf import settings
 from django.core import signals
-from django import db
 from django.db.utils import DEFAULT_DB_ALIAS
 
 # Backwards compatibility
-from django_digest.models import (
-    _after_authenticate as update_partial_digests,
-    _review_partial_digests as review_partial_digests
-)
-from django_digest.backend.storage import AccountStorage, NonceStorage
+from django_digest.signals import DigestApi
+
+_update_partial_digest = DigestApi._after_authenticate
+_review_partial_digest = DigestApi._review_partial_digests
 
 
 class MultiDb(object):
@@ -33,7 +25,7 @@ class MultiDb(object):
 
     def create_connection(self, using=None, **kwargs):
         if using:
-            params = copy(db.connections[using].settings_dict)
+            params = db.connections[using].settings_dict.copy()
             params.update(kwargs)
         else:
             params = kwargs
@@ -60,6 +52,7 @@ class MultiDb(object):
 
 class FakeMultiDb(MultiDb):
     """For Django < 1.2."""
+
     def __init__(self):
         self.created = not self.is_test_mode()
         self.connection = self.create_connection()
